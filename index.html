@@ -29,18 +29,122 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<script>
-  var map = L.map('map').setView([-13.2543, 34.3015], 6);
+ <script>
+  var map = L.map('map');
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+}).addTo(map);
 
-  L.marker([-13.9833, 33.7833])
-    .addTo(map)
-    .bindPopup("Lilongwe")
-    .openPopup();
+  var projects = [
+    { title: "JCM Power LRP Audit for Salima Power Plant", country: "Malawi", region: "Malawi", lat: -13.78, lng: 34.458 },
+    { title: "LRP Phase II Serengeti Energy Nkhotakota Solar Project", country: "Malawi", region: "Malawi", lat: -12.9270, lng: 34.2960 },
+    { title: "SIA Kasiya Graphite and Rutile Project", country: "Malawi", region: "Malawi", lat: -13.75, lng: 33.50 },
+    { title: "ESIA, RLRAP and resettlement for Kayelekera Uranium Mine", country: "Malawi", region: "Malawi", lat: -9.9330, lng: 33.9330 },
+    { title: "Mpatamanga Hydropower Project RLRAP", country: "Malawi", region: "Malawi", lat: -15.93, lng: 35.12 },
+    { title: "Mpatamanga Hydropower Project RLRAP", country: "Malawi", region: "Malawi", lat: -15.7861, lng: 35.0058 },
+    { title: "Mpatamanga Hydropower Project CIA", country: "Malawi", region: "Malawi", lat: -15.6030, lng: 34.5240 },
+    { title: "Monitoring for the Malawi-Mozambique Interconnection Project RAP", country: "Malawi", region: "Malawi", lat: -15.6030, lng: 34.5240 },
+    { title: "Monitoring for the Malawi-Mozambique Interconnection Project RAP", country: "Malawi", region: "Malawi", lat: -15.3980, lng: 34.6530 },
+    { title: "Monitoring for the Malawi-Mozambique Interconnection Project RAP", country: "Malawi", region: "Malawi", lat: -14.9800, lng: 34.9590 },
+    { title: "E&S Technical Support to Agricane Sugar Estates", country: "Malawi", region: "Malawi", lat: -16.0333, lng: 34.8000 },
+    { title: "E&S Technical Support to Agricane Sugar Estates", country: "Malawi", region: "Malawi", lat: -16.9167, lng: 35.2667 },
+    { title: "E&S Screening for the proposed 60MW solar power plant", country: "Malawi", region: "Malawi", lat: -14.9793, lng: 34.9553 },
+
+    // Africa (non-Malawi)
+    { title: "Global Tea and Commodities LTD E&S Monitoring & Capacity Building: ESAP", country: "Kenya", region: "Africa", lat: -0.0236, lng: 37.9062 },
+    { title: "Performance Evaluation of P4G’s 2018–2022 Partnerships", country: "Ethiopia", region: "Africa", lat: 9.1450, lng: 40.4897 },
+    { title: "Performance Evaluation of P4G’s 2018–2022 Partnerships", country: "South Africa", region: "Africa", lat: -30.5595, lng: 22.9375 },
+    { title: "Performance Evaluation of P4G’s 2018–2022 Partnerships", country: "Zambia", region: "Africa", lat: -13.1339, lng: 27.8493 },
+
+    // Global
+    { title: "Performance Evaluation of P4G’s 2018–2022 Partnerships", country: "Indonesia", region: "Global", lat: -0.7893, lng: 113.9213 },
+    { title: "Performance Evaluation of P4G’s 2018–2022 Partnerships", country: "Colombia", region: "Global", lat: 4.5709, lng: -74.2973 }
+  ];
+
+  var malawiBounds = L.latLngBounds();
+  var africaBounds = L.latLngBounds();
+  var globalBounds = L.latLngBounds();
+
+  projects.forEach(function(p) {
+    if (
+      typeof p.lat !== "number" || typeof p.lng !== "number" ||
+      p.lat < -90 || p.lat > 90 || p.lng < -180 || p.lng > 180
+    ) {
+      console.warn("Skipping invalid point:", p);
+      return;
+    }
+
+    var ll = [p.lat, p.lng];
+
+    L.marker(ll)
+      .addTo(map)
+      .bindTooltip(p.title, { direction: "top", offset: [0, -10], sticky: true });
+
+    globalBounds.extend(ll);
+
+    if (p.region === "Malawi" || p.region === "Africa") {
+      africaBounds.extend(ll);
+    }
+
+    if (p.region === "Malawi") {
+      malawiBounds.extend(ll);
+    }
+  });
+
+  // Default view
+  map.fitBounds(malawiBounds, { padding: [40, 40], maxZoom: 8 });
+
+  // Zoom limits per view
+  var malawiMinZoom = 5;
+  var africaMinZoom = 3;
+  var globalMinZoom = 2;
+  map.setMinZoom(malawiMinZoom);
+
+  // ---- View toggle buttons (Malawi / Africa / Global) ----
+  var ViewControl = L.Control.extend({
+    options: { position: 'topright' },
+
+    onAdd: function () {
+      var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+
+      function addBtn(label, handler) {
+        var btn = L.DomUtil.create('a', '', div);
+        btn.innerHTML = label;
+        btn.href = '#';
+        btn.style.padding = '6px 10px';
+        btn.style.cursor = 'pointer';
+        L.DomEvent.on(btn, 'click', function (e) {
+          L.DomEvent.preventDefault(e);
+          handler();
+        });
+      }
+
+      L.DomEvent.disableClickPropagation(div);
+
+      addBtn('Malawi', function () {
+        map.setMinZoom(malawiMinZoom);
+        map.fitBounds(malawiBounds, { padding: [40, 40], maxZoom: 8 });
+      });
+
+      addBtn('Africa', function () {
+        map.setMinZoom(africaMinZoom);
+        map.fitBounds(africaBounds, { padding: [40, 40] });
+      });
+
+      addBtn('Global', function () {
+        map.setMinZoom(globalMinZoom);
+        map.fitBounds(globalBounds, { padding: [40, 40] });
+      });
+
+      return div;
+    }
+  });
+
+  map.addControl(new ViewControl());
 </script>
+
+  </script>
 
 </body>
 </html>
