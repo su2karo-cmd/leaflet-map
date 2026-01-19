@@ -32,9 +32,17 @@
  <script>
   var map = L.map('map');
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-}).addTo(map);
+L.tileLayer(
+  'https://api.maptiler.com/maps/basic-v2/{z}/{x}/{y}.png?key=RtqTELpCk0sOLR9Uqws8',
+  {
+    tileSize: 512,
+    zoomOffset: -1,
+    maxZoom: 19,
+    attribution:
+      '&copy; OpenStreetMap contributors &copy; MapTiler'
+  }
+).addTo(map);
+
 
   var projects = [
     { title: "JCM Power LRP Audit for Salima Power Plant", country: "Malawi", region: "Malawi", lat: -13.78, lng: 34.458 },
